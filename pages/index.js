@@ -1,29 +1,22 @@
-import Link from "next/link";
-import { useUser } from "@auth0/nextjs-auth0/client";
 import Image from "next/image";
+import HeroImage from "../public/hero.webp";
+import { Logo } from "../components/Logo";
+import Link from "next/link";
 export default function Home() {
-  const { user } = useUser();
-
   return (
     <div>
-      <h1>This is the home page</h1>
-      <div>
-        {!!user ? (
-          <>
-            <div>
-              <Image
-                src={user.picture}
-                alt={user.name}
-                height={50}
-                width={50}
-              ></Image>
-              <div>{user.email}</div>
-            </div>
-            <Link href="/api/auth/logout">Logout</Link>
-          </>
-        ) : (
-          <Link href="/api/auth/login">Login</Link>
-        )}
+      <div className="w-screen h-screen overflow-hidden flex justify-center items-center relative">
+        <Image src={HeroImage} alt="Hero" fill className="absolute" />
+        <div className="relative z-10 text-white px-10 py-5 text-center max-w-screen-sm bg-slate-900/90 rounded-md backdrop-blur-sm">
+          <Logo />
+          <p>
+            AI-TokenWriter is an AI-powered SAAS Solution to generate search
+            engine optimized blog posts quickly in real time.
+          </p>
+          <Link href="/post/new" className="btn mt-2">
+            Begin
+          </Link>
+        </div>
       </div>
     </div>
   );
