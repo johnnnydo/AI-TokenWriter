@@ -19,7 +19,7 @@ export default function NewPost(props) {
       }
       const json = await response.json();
       console.log("Result", json);
-      setPostContent(json.postContent);
+      setPostContent(json.post.postContent);
     } catch (error) {
       console.error("Error making request:", error);
     }
