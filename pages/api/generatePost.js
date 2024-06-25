@@ -1,13 +1,26 @@
+import { getSession, withApiAuthRequired } from "@auth0/nextjs-auth0";
 import { Configuration, OpenAIApi } from "openai";
-import { type } from "os";
-export default async function handler(req, res) {
+
+import clientPromise from "../../lib/mongodb";
+export default withApiAuthRequired(async function handler(req, res) {
+  const { user } = await getSession(req, res);
+  const client = await clientPromise;
+  const db = client.db("ai-tokenwriter");
+
+  const userProfile = await db.collection("users").findOne({
+    auth0Id: user.sub,
+  });
+  if (!userProfile?.availableTokens) {
+    res.status(403);
+    return;
+  }
   const config = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
   });
   const openai = new OpenAIApi(config);
 
-  const topic = "dog ownership";
-  const keywords = "first-time dog owner, puppy diet";
+  const { topic, keywords } = req.body;
+
   const response = await openai.createChatCompletion({
     model: "gpt-3.5-turbo-1106",
     messages: [
@@ -45,7 +58,7 @@ export default async function handler(req, res) {
       {
         role: "user",
         content: `
-            Generate a SEO friendly title and SEO friendly meta description for the following blog post.
+            Generate a SEO friendly title and SEO friendly meta description for the following blog post:
             ${postContent}
             ---
             The output json must be in the following format:
@@ -58,9 +71,36 @@ export default async function handler(req, res) {
     ],
     response_format: { type: "json_object" },
   });
-
+  /* 
   const { title, metaDescription } =
-    seoResponse.data.choices[0]?.message?.content || {};
+    seoResponse.data.choices[0]?.message?.content || {}; */
+  const seoData = JSON.parse(seoResponse.data.choices[0]?.message?.content);
 
-  res.status(200).json({ post: { postContent, title, metaDescription } });
-}
+  const title = seoData?.title || "Default Title";
+  const metaDescription =
+    seoData?.metaDescription || "Default Meta Description";
+
+  await db.collection("users").updateOne(
+    {
+      auth0Id: user.sub,
+    },
+    {
+      $inc: {
+        availableTokens: -1,
+      },
+    }
+  );
+
+  const post = await db.collection("posts").insertOne({
+    postContent,
+    title,
+    metaDescription,
+    topic,
+    keywords,
+    userId: userProfile._id,
+    created: new Date(),
+  });
+  console.log("POST:", post);
+
+  res.status(200).json({ postId: post.insertedId });
+});
