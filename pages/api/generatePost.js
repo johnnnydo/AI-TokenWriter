@@ -20,6 +20,14 @@ export default withApiAuthRequired(async function handler(req, res) {
   const openai = new OpenAIApi(config);
 
   const { topic, keywords } = req.body;
+  if (!topic || !keywords) {
+    res.status(422);
+    return;
+  }
+  if (topic.length > 120 || keywords.length > 80) {
+    res.status(422);
+    return;
+  }
 
   const response = await openai.createChatCompletion({
     model: "gpt-3.5-turbo-1106",
