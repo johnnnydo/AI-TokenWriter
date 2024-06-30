@@ -6,11 +6,13 @@ import Link from "next/link";
 import { useContext, useEffect } from "react";
 import PostsContext from "../../context/postsContext";
 import { Logo } from "../Logo";
+
 export const AppLayout = ({
   children,
   availableTokens,
   posts: postsFromSSR,
   postId,
+  postCreated,
 }) => {
   const { user } = useUser();
 
@@ -18,7 +20,13 @@ export const AppLayout = ({
     useContext(PostsContext);
   useEffect(() => {
     setPostsFromSSR(postsFromSSR);
-  }, [postsFromSSR, setPostsFromSSR]);
+    if (postId) {
+      const exists = postsFromSSR.find((post) => post._id === postId);
+      if (!exists) {
+        getPosts({ getNewerPosts: true, lastPostDate: postCreated });
+      }
+    }
+  }, [postsFromSSR, setPostsFromSSR, postId, postCreated, getPosts]);
   return (
     <div className="grid grid-cols-[300px_1fr] h-screen max-h-screen">
       <div className="flex flex-col text-white overflow-hidden">
